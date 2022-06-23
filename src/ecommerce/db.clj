@@ -96,10 +96,10 @@
    :id              java.util.UUID
    :palavra-chave   [s/Str]})
 
-(defn adiciona-produtos!
-  ([conn produtos]
+(s/defn adiciona-produtos!
+  ([conn, produtos :- [model/Produto]]
    (d/transact conn produtos))
-  ([conn produtos ip]
+  ([conn, produtos :- [model/Produto], ip]
    (let [db-add-ip [:db/add "datomic.tx" :tx-data/ip ip]]
      (d/transact conn (conj produtos db-add-ip)))))
 
@@ -174,9 +174,6 @@
   (d/pull db '[*] [:produto/id produto-id]))
 
 
-(defn todas-as-categorias [db]
-  (d/q '[:find (pull ?categoria [*])
-         :where [?categoria :categoria/id]] db))
 
 (defn db-adds-de-atribuicao-de-categorias [produtos categoria]
   (reduce (fn [db-adds produto] (conj db-adds [:db/add
@@ -195,7 +192,7 @@
 
 ; como esses dois estao genericos poderiam ser um so
 ; mas vamos manter dois pois se voce usa schema fica mais facil de trabalhar
-(s/defn adiciona-categorias! [conn categorias :- [model/Categoria]]
+(s/defn adiciona-categorias! [conn, categorias :- [model/Categoria]]
   (d/transact conn categorias))
 
 
@@ -264,6 +261,46 @@
          [?produto :produto/id _ ?transacao]]
        db ip))
 
+; sem o [] no find, a query vai retornar tuplas
+;(s/defn todas-as-categorias  [db]
+;  (d/q '[:find (pull ?categoria [*])
+;         :where [?categoria :categoria/id]]
+;       db))
+
+; com o [] no find, a query nao vai retornar tuplas, mas vai retornar somente 1 registro (qualquer)
+;(s/defn todas-as-categorias  [db]
+;  (d/q '[:find [(pull ?categoria [*])]
+;         :where [?categoria :categoria/id]]
+;       db))
+
+; versao simples que nao faz recursivamente
+(defn datomic-para-entidade [entidades]
+  (map #(dissoc % :db/id) entidades))
+
+; com o [] no find, a query nao vai retornar tuplas + e com o ... no final a query vai retornar todos os registros
+(s/defn todas-as-categorias :- [model/Categoria] [db]
+  (datomic-para-entidade
+    (d/q '[:find [(pull ?categoria [*]) ...]
+         :where [?categoria :categoria/id]]
+       db)))
+
+;[{categoria}, {categoria}, {categoria}]
+;[[{categoria}], [{categoria}], [{categoria}]]
+;
+;:find nome, preco
+;[
+; [nome, preco]
+; [nome, preco]
+; [nome, preco]
+; ]
+;
+;:find nome
+;[
+; nome
+; nome
+; nome
+; ]
+
 (defn cria-dados-de-exemplo [conn]
   (def eletronicos (model/nova-categoria "Eletronicos"))
   (def esporte (model/nova-categoria "Esporte"))
@@ -271,10 +308,10 @@
 
   (def computador (model/novo-produto (model/uuid) "Computador Novo", "/computador-novo", 2500.10M))
   (def celular (model/novo-produto (model/uuid) "Celular Caro", "/celular", 888888.10M))
-  (def calculadora {:produto/nome "Calculadora com 4 operacoes"})
+  ;(def calculadora {:produto/nome "Calculadora com 4 operacoes"})
   (def celular-barato (model/novo-produto "Celular Barato", "/celular-barato", 0.1M))
   (def xadrez (model/novo-produto "Tabuleiro de xadrez", "/tabuleiro-de-xadrez", 30M))
-  (pprint @(adiciona-produtos! conn [computador, celular, calculadora, celular-barato, xadrez] "200.216.222.125"))
+  (pprint @(adiciona-produtos! conn [computador, celular, celular-barato, xadrez] "200.216.222.125"))
 
   (atribui-categorias! conn [computador, celular, celular-barato] eletronicos)
   (atribui-categorias! conn [xadrez] esporte))
