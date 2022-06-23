@@ -1,6 +1,19 @@
-(ns ecommerce.model)
+(ns ecommerce.model
+  (:require [schema.core :as s]))
 
 (defn uuid [] (java.util.UUID/randomUUID))
+
+(def Categoria
+  {:categoria/id             java.util.UUID
+   :categoria/nome           s/Str})
+
+(def Produto
+  {:produto/nome                           s/Str
+   :produto/slug                           s/Str
+   :produto/preco                          BigDecimal
+   :produto/id                             java.util.UUID
+   (s/optional-key :produto/palavra-chave) [s/Str]
+   (s/optional-key :produto/categoria)     Categoria})
 
 (defn novo-produto
   ; gerar ids dinamicamente

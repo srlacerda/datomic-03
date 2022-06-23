@@ -51,5 +51,6 @@
     <orderEntry type="library" name="Leiningen: org.slf4j/log4j-over-slf4j:1.7.22" level="project" />
     <orderEntry type="library" name="Leiningen: org.slf4j/slf4j-api:1.7.22" level="project" />
     <orderEntry type="library" name="Leiningen: org.slf4j/slf4j-nop:1.7.22" level="project" />
+    <orderEntry type="library" name="Leiningen: prismatic/schema:1.1.12" level="project" />
   </component>
 </module>

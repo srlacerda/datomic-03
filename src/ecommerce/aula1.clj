@@ -2,11 +2,25 @@
   (:use clojure.pprint)
   (:require [datomic.api :as d]
             [ecommerce.db :as db]
-            [ecommerce.model :as model]))
+            [ecommerce.model :as model]
+            [schema.core :as s]))
+
+(s/set-fn-validation! true)
 
 (db/apaga-banco!)
 (def conn (db/abre-conexao!))
 (db/cria-schema! conn)
+
+(defn teste-schema []
+  (def computador (model/novo-produto (model/uuid) "Computador Novo", "/computador-novo", 2500.10M))
+  (pprint (s/validate model/Produto computador))
+  ;(pprint (s/validate model/Produto (assoc computador :produto/preco 76)))
+
+  (def eletronicos (model/nova-categoria "Eletronicos"))
+  (pprint (s/validate model/Categoria eletronicos))
+  (pprint (s/validate model/Produto (assoc computador :produto/categoria eletronicos))))
+
+(teste-schema)
 
 (db/cria-dados-de-exemplo conn)
 

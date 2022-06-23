@@ -1,7 +1,8 @@
 (ns ecommerce.db
   (:use clojure.pprint)
   (:require [datomic.api :as d]
-            [ecommerce.model :as model]))
+            [ecommerce.model :as model]
+            [schema.core :as s]))
 
 (def db-uri "datomic:dev://localhost:4334/ecommerce")
 
@@ -87,6 +88,20 @@
               :db/cardinality :db.cardinality/one}
 
              ])
+
+(def Produto
+  {:nome            s/Str
+   :slug            s/Str
+   :preco           BigDecimal
+   :id              java.util.UUID
+   :palavra-chave   [s/Str]})
+
+(defn adiciona-produtos!
+  ([conn produtos]
+   (d/transact conn produtos))
+  ([conn produtos ip]
+   (let [db-add-ip [:db/add "datomic.tx" :tx-data/ip ip]]
+     (d/transact conn (conj produtos db-add-ip)))))
 
 (defn cria-schema! [conn]
   (d/transact conn schema))
@@ -178,16 +193,9 @@
     ;(pprint a-transacionar)
     (d/transact conn a-transacionar)))
 
-(defn adiciona-produtos!
-  ([conn produtos]
-   (d/transact conn produtos))
-  ([conn produtos ip]
-   (let [db-add-ip [:db/add "datomic.tx" :tx-data/ip ip]]
-     (d/transact conn (conj produtos db-add-ip)))))
-
 ; como esses dois estao genericos poderiam ser um so
 ; mas vamos manter dois pois se voce usa schema fica mais facil de trabalhar
-(defn adiciona-categorias! [conn categorias]
+(s/defn adiciona-categorias! [conn categorias :- [model/Categoria]]
   (d/transact conn categorias))
 
 
