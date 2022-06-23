@@ -2,7 +2,8 @@
   (:use clojure.pprint)
   (:require [datomic.api :as d]
             [ecommerce.model :as model]
-            [schema.core :as s]))
+            [schema.core :as s]
+            [clojure.walk :as walk]))
 
 (def db-uri "datomic:dev://localhost:4334/ecommerce")
 
@@ -109,12 +110,6 @@
 (defn todos-os-produtos [db]
   (d/q '[:find ?entidade
          :where [?entidade :produto/nome]] db))
-
-; pull generico, vantagem preguica, desvantagem pode trazer mais do que eu queira
-(defn todos-os-produtos [db]
-  (d/q '[:find (pull ?entidade [*])
-         :where [?entidade :produto/nome]] db))
-
 
 (def todos-os-produtos-por-slug-fixo-q
   '[:find ?entidade
@@ -274,8 +269,17 @@
 ;       db))
 
 ; versao simples que nao faz recursivamente
+;(defn datomic-para-entidade [entidades]
+;  (map #(dissoc % :db/id) entidades))
+
+(defn dissoc-db-id [entidade]
+  (if (map? entidade)
+    (dissoc entidade :db/id)
+    entidade))
+
+; versao recursiva
 (defn datomic-para-entidade [entidades]
-  (map #(dissoc % :db/id) entidades))
+  (walk/prewalk dissoc-db-id entidades))
 
 ; com o [] no find, a query nao vai retornar tuplas + e com o ... no final a query vai retornar todos os registros
 (s/defn todas-as-categorias :- [model/Categoria] [db]
@@ -300,6 +304,13 @@
 ; nome
 ; nome
 ; ]
+
+
+(s/defn todos-os-produtos :- [model/Produto] [db]
+  (datomic-para-entidade
+    (d/q '[:find [(pull ?entidade [* {:produto/categoria [*]}]) ...]
+         :where [?entidade :produto/nome]] db)))
+
 
 (defn cria-dados-de-exemplo [conn]
   (def eletronicos (model/nova-categoria "Eletronicos"))
