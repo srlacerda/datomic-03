@@ -49,8 +49,7 @@
       (println "Atualizado slug")
       produto)))
 
-(println "Dama atual")
-(pprint dama)
+
 
 (defn roda-transacoes [tx]
   (let [futuros (mapv #(future (%)) tx)]
@@ -74,5 +73,8 @@
     (db/adiciona-ou-altera-produtos! conn [produto])
     (println "Atualizado slug")
     produto))
+
+(println "Dama atual")
+(pprint dama)
 
 (roda-transacoes [atualiza-preco-inteligente atualiza-slug-inteligente])

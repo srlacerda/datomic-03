@@ -90,12 +90,6 @@
 
              ])
 
-(def Produto
-  {:nome            s/Str
-   :slug            s/Str
-   :preco           BigDecimal
-   :id              java.util.UUID
-   :palavra-chave   [s/Str]})
 
 (s/defn adiciona-ou-altera-produtos!
   ([conn, produtos :- [model/Produto]]
@@ -115,9 +109,25 @@
 (defn datomic-para-entidade [entidades]
   (walk/prewalk dissoc-db-id entidades))
 
-(s/defn um-produto :- model/Produto [db, produto-id :- java.util.UUID]
-  (datomic-para-entidade
-    (d/pull db '[*] [:produto/id produto-id])))
+; o maybe permite nil
+; nil permite nullpointerexception
+; nullpointerexception permite um inferno de exceptions
+; usamos maybe SOMENTE em retorno de funcao
+; E somente quando fizer muito sentido
+; isto é... maybe nao e usado em mapas. em maps usamos as chaves opcionais
+(s/defn um-produto :- (s/maybe model/Produto) [db, produto-id :- java.util.UUID]
+  (let [resultado (d/pull db '[* {:produto/categoria [*]}] [:produto/id produto-id])
+        produto (datomic-para-entidade resultado)]
+    (if (:produto/id produto)
+      produto
+      nil)))
+
+(s/defn um-produto! :- model/Produto [db, produto-id :- java.util.UUID]
+  (let [produto (um-produto db produto-id)]
+    (when (nil? produto)
+      (throw (ex-info "Nao encontrei uma entidade"
+                     {:type :errors/not-found, :id produto-id})))
+    produto))
 
 (defn db-adds-de-atribuicao-de-categorias [produtos categoria]
   (reduce (fn [db-adds produto] (conj db-adds [:db/add
