@@ -73,6 +73,9 @@
              {:db/ident       :produto/categoria
               :db/valueType   :db.type/ref
               :db/cardinality :db.cardinality/one}
+             {:db/ident       :produto/estoque
+              :db/valueType   :db.type/long
+              :db/cardinality :db.cardinality/one}
 
              ;Categorias
              {:db/ident       :categoria/nome
@@ -126,7 +129,7 @@
   (let [produto (um-produto db produto-id)]
     (when (nil? produto)
       (throw (ex-info "Nao encontrei uma entidade"
-                     {:type :errors/not-found, :id produto-id})))
+                      {:type :errors/not-found, :id produto-id})))
     produto))
 
 (defn db-adds-de-atribuicao-de-categorias [produtos categoria]
@@ -153,8 +156,8 @@
 (s/defn todas-as-categorias :- [model/Categoria] [db]
   (datomic-para-entidade
     (d/q '[:find [(pull ?categoria [*]) ...]
-         :where [?categoria :categoria/id]]
-       db)))
+           :where [?categoria :categoria/id]]
+         db)))
 
 ;[{categoria}, {categoria}, {categoria}]
 ;[[{categoria}], [{categoria}], [{categoria}]]
@@ -176,21 +179,27 @@
 (s/defn todos-os-produtos :- [model/Produto] [db]
   (datomic-para-entidade
     (d/q '[:find [(pull ?entidade [* {:produto/categoria [*]}]) ...]
-         :where [?entidade :produto/nome]] db)))
+           :where [?entidade :produto/nome]] db)))
 
 (defn cria-dados-de-exemplo [conn]
   (def eletronicos (model/nova-categoria "Eletronicos"))
   (def esporte (model/nova-categoria "Esporte"))
   (pprint @(adiciona-categorias! conn [eletronicos, esporte]))
 
-  (def computador (model/novo-produto (model/uuid) "Computador Novo", "/computador-novo", 2500.10M))
+  (def computador (model/novo-produto (model/uuid) "Computador Novo", "/computador-novo", 2500.10M, 10))
   (def celular (model/novo-produto (model/uuid) "Celular Caro", "/celular", 888888.10M))
   (def celular-barato (model/novo-produto "Celular Barato", "/celular-barato", 0.1M))
-  (def xadrez (model/novo-produto "Tabuleiro de xadrez", "/tabuleiro-de-xadrez", 30M))
+  (def xadrez (model/novo-produto (model/uuid) "Tabuleiro de xadrez", "/tabuleiro-de-xadrez", 30M, 5))
   (pprint @(adiciona-ou-altera-produtos! conn [computador, celular, celular-barato, xadrez] "200.216.222.125"))
 
   (atribui-categorias! conn [computador, celular, celular-barato] eletronicos)
   (atribui-categorias! conn [xadrez] esporte))
 
+(s/defn todos-os-produtos-com-estoque :- [model/Produto] [db]
+  (datomic-para-entidade
+    (d/q '[:find [(pull ?produto [* {:produto/categoria [*]}]) ...]
+           :where [?produto :produto/estoque ?estoque]
+                  [(> ?estoque 0)]]
+         db)))
 
 

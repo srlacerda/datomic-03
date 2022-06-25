@@ -4,31 +4,47 @@
 (defn uuid [] (java.util.UUID/randomUUID))
 
 (def Categoria
-  {:categoria/id             java.util.UUID
-   :categoria/nome           s/Str})
+  {:categoria/id   java.util.UUID
+   :categoria/nome s/Str})
 
 (def Produto
-  {(s/optional-key :produto/nome)                           s/Str
-   (s/optional-key :produto/slug)                           s/Str
-   (s/optional-key :produto/preco)                          BigDecimal
-   :produto/id                             java.util.UUID
-   (s/optional-key :produto/palavra-chave) [s/Str]
-   (s/optional-key :produto/categoria)     Categoria})
 
-(defn novo-produto
-  ; gerar ids dinamicamente
+  {(s/optional-key :produto/id)            java.util.UUID
+   (s/optional-key :produto/nome)          s/Str
+   (s/optional-key :produto/slug)          s/Str
+   (s/optional-key :produto/preco)         BigDecimal
+   (s/optional-key :produto/palavra-chave) [s/Str]
+   (s/optional-key :produto/categoria)     Categoria
+   (s/optional-key :produto/estoque)       s/Int})
+
+(s/defn novo-produto :- Produto
   ([nome slug preco]
    (novo-produto (uuid) nome slug preco))
-  ; usar ids que ja foram criados antes
   ([uuid nome slug preco]
-   {:produto/id    uuid
-    :produto/nome  nome
-    :produto/slug  slug
-    :produto/preco preco}))
+   (novo-produto uuid nome slug preco 0))
+  ([uuid nome slug preco estoque]
+   ; sera que faz sentido aridade multipla?
+   ; pois ai entramos no problema de polimorfismo e multiplos construtores
+   ; de outras linguages
+   {:produto/id      uuid
+    :produto/nome    nome
+    :produto/slug    slug
+    :produto/preco   preco
+    :produto/estoque estoque})
+  )
+
+; a "desvantagem" é o copy e paste nas chaves
+; a abordagem com mapa
+; e se for por mapa, sera que fas sentido um novo-produto?
+;(s/defn novo-produto :- Produto
+;  [produto]
+;  (if (get produto :produto/uuid)
+;    produto
+;    (assoc produto :produto/id (uuid))))
 
 (defn nova-categoria
   ([nome]
    (nova-categoria (uuid) nome))
   ([uuid nome]
-   {:categoria/id uuid
+   {:categoria/id   uuid
     :categoria/nome nome}))
