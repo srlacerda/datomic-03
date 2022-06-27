@@ -199,7 +199,7 @@
   (datomic-para-entidade
     (d/q '[:find [(pull ?produto [* {:produto/categoria [*]}]) ...]
            :where [?produto :produto/estoque ?estoque]
-                  [(> ?estoque 0)]]
+           [(> ?estoque 0)]]
          db)))
 
 (s/defn um-produto-com-estoque :- (s/maybe model/Produto) [db, produto-id :- java.util.UUID]
@@ -209,6 +209,33 @@
                  [?produto :produto/estoque ?estoque]
                  [(> ?estoque 0)]]
         resultado (d/q query db produto-id)
+        produto (datomic-para-entidade resultado)]
+    (if (:produto/id produto)
+      produto
+      nil)))
+
+(def regras
+  ' [
+     [(estoque ?produto ?estoque)
+      [?produto :produto/estoque ?estoque]]
+     ])
+
+(s/defn todos-os-produtos-com-estoque :- [model/Produto] [db]
+  (datomic-para-entidade
+    (d/q '[:find [(pull ?produto [* {:produto/categoria [*]}]) ...]
+           :in $ %
+           :where
+                    (estoque ?produto ?estoque)
+                    [(> ?estoque 0)]]
+         db regras)))
+
+(s/defn um-produto-com-estoque :- (s/maybe model/Produto) [db, produto-id :- java.util.UUID]
+  (let [query ' [:find  (pull ?produto [* {:produto/categoria [*]}]) .
+                 :in     $ % ?id
+                 :where   [?produto :produto/id ?id]
+                          (estoque ?produto ?estoque)
+                          [(> ?estoque 0)]]
+        resultado (d/q query db regras produto-id)
         produto (datomic-para-entidade resultado)]
     (if (:produto/id produto)
       produto
