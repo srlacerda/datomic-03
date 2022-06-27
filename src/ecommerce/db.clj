@@ -76,6 +76,9 @@
              {:db/ident       :produto/estoque
               :db/valueType   :db.type/long
               :db/cardinality :db.cardinality/one}
+             {:db/ident       :produto/digital
+              :db/valueType   :db.type/boolean
+              :db/cardinality :db.cardinality/one}
 
              ;Categorias
              {:db/ident       :categoria/nome
@@ -190,9 +193,10 @@
   (def celular (model/novo-produto (model/uuid) "Celular Caro", "/celular", 888888.10M))
   (def celular-barato (model/novo-produto "Celular Barato", "/celular-barato", 0.1M))
   (def xadrez (model/novo-produto (model/uuid) "Tabuleiro de xadrez", "/tabuleiro-de-xadrez", 30M, 5))
-  (pprint @(adiciona-ou-altera-produtos! conn [computador, celular, celular-barato, xadrez] "200.216.222.125"))
+  (def jogo (assoc (model/novo-produto (model/uuid) "Jogo online", "/jogo-online", 20M) :produto/digital true))
+  (pprint @(adiciona-ou-altera-produtos! conn [computador, celular, celular-barato, xadrez, jogo] "200.216.222.125"))
 
-  (atribui-categorias! conn [computador, celular, celular-barato] eletronicos)
+  (atribui-categorias! conn [computador, celular, celular-barato, jogo] eletronicos)
   (atribui-categorias! conn [xadrez] esporte))
 
 (s/defn todos-os-produtos-com-estoque :- [model/Produto] [db]
@@ -203,11 +207,11 @@
          db)))
 
 (s/defn um-produto-com-estoque :- (s/maybe model/Produto) [db, produto-id :- java.util.UUID]
-  (let [query ' [:find  (pull ?produto [* {:produto/categoria [*]}]) .
-                 :in     $ ?id
-                 :where  [?produto :produto/id ?id]
-                 [?produto :produto/estoque ?estoque]
-                 [(> ?estoque 0)]]
+  (let [query '[:find (pull ?produto [* {:produto/categoria [*]}]) .
+                :in $ ?id
+                :where [?produto :produto/id ?id]
+                [?produto :produto/estoque ?estoque]
+                [(> ?estoque 0)]]
         resultado (d/q query db produto-id)
         produto (datomic-para-entidade resultado)]
     (if (:produto/id produto)
@@ -215,26 +219,28 @@
       nil)))
 
 (def regras
-  ' [
-     [(estoque ?produto ?estoque)
-      [?produto :produto/estoque ?estoque]]
-     ])
+  '[
+    [(estoque ?produto ?estoque)
+     [?produto :produto/estoque ?estoque]]
+    [(estoque ?produto ?estoque)
+     [?produto :produto/digital true]
+     [(ground 100) ?estoque]]
+    ])
 
-(s/defn todos-os-produtos-com-estoque :- [model/Produto] [db]
+(s/defn todos-os-produtos-vendaveis :- [model/Produto] [db]
   (datomic-para-entidade
     (d/q '[:find [(pull ?produto [* {:produto/categoria [*]}]) ...]
            :in $ %
-           :where
-                    (estoque ?produto ?estoque)
-                    [(> ?estoque 0)]]
+           :where (estoque ?produto ?estoque)
+           [(> ?estoque 0)]]
          db regras)))
 
-(s/defn um-produto-com-estoque :- (s/maybe model/Produto) [db, produto-id :- java.util.UUID]
-  (let [query ' [:find  (pull ?produto [* {:produto/categoria [*]}]) .
-                 :in     $ % ?id
-                 :where   [?produto :produto/id ?id]
-                          (estoque ?produto ?estoque)
-                          [(> ?estoque 0)]]
+(s/defn um-produto-vendavel :- (s/maybe model/Produto) [db, produto-id :- java.util.UUID]
+  (let [query '[:find (pull ?produto [* {:produto/categoria [*]}]) .
+                :in $ % ?id
+                :where [?produto :produto/id ?id]
+                (estoque ?produto ?estoque)
+                [(> ?estoque 0)]]
         resultado (d/q query db regras produto-id)
         produto (datomic-para-entidade resultado)]
     (if (:produto/id produto)

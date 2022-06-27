@@ -9,13 +9,14 @@
 
 (def Produto
 
-  {(s/optional-key :produto/id)            java.util.UUID
+  {:produto/id                             java.util.UUID
    (s/optional-key :produto/nome)          s/Str
    (s/optional-key :produto/slug)          s/Str
    (s/optional-key :produto/preco)         BigDecimal
    (s/optional-key :produto/palavra-chave) [s/Str]
    (s/optional-key :produto/categoria)     Categoria
-   (s/optional-key :produto/estoque)       s/Int})
+   (s/optional-key :produto/estoque)       s/Int
+   (s/optional-key :produto/digital)       s/Bool})
 
 (s/defn novo-produto :- Produto
   ([nome slug preco]
@@ -30,7 +31,8 @@
     :produto/nome    nome
     :produto/slug    slug
     :produto/preco   preco
-    :produto/estoque estoque})
+    :produto/estoque estoque
+    :produto/digital false})
   )
 
 ; a "desvantagem" é o copy e paste nas chaves
