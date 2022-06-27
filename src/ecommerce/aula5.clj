@@ -15,11 +15,14 @@
 (pprint (db/todos-os-produtos-vendaveis (d/db conn)))
 
 (def produtos (db/todos-os-produtos (d/db conn)))
-(pprint (:produto/estoque (first produtos)))
-(pprint (:produto/estoque (second produtos)))
-(pprint (db/um-produto-vendavel (d/db conn) (:produto/id (first produtos))))
-(pprint (db/um-produto-vendavel (d/db conn) (:produto/id (second produtos))))
+
+(defn verifica-se-pode-vender [produto]
+  (println "Analisando um produto")
+  (pprint (:produto/estoque  produto))
+  (pprint (:produto/digital  produto))
+  (pprint (db/um-produto-vendavel (d/db conn) (:produto/id produto)))
+  )
 
 
-
+(mapv verifica-se-pode-vender produtos)
 

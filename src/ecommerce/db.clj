@@ -225,14 +225,16 @@
     [(estoque ?produto ?estoque)
      [?produto :produto/digital true]
      [(ground 100) ?estoque]]
+    [(pode-vender? ?produto)
+     (estoque ?produto ?estoque)
+     [(> ?estoque 0)]]
     ])
 
 (s/defn todos-os-produtos-vendaveis :- [model/Produto] [db]
   (datomic-para-entidade
     (d/q '[:find [(pull ?produto [* {:produto/categoria [*]}]) ...]
            :in $ %
-           :where (estoque ?produto ?estoque)
-           [(> ?estoque 0)]]
+           :where (pode-vender? ?produto)]
          db regras)))
 
 (s/defn um-produto-vendavel :- (s/maybe model/Produto) [db, produto-id :- java.util.UUID]
@@ -241,6 +243,17 @@
                 :where [?produto :produto/id ?id]
                 (estoque ?produto ?estoque)
                 [(> ?estoque 0)]]
+        resultado (d/q query db regras produto-id)
+        produto (datomic-para-entidade resultado)]
+    (if (:produto/id produto)
+      produto
+      nil)))
+
+(s/defn um-produto-vendavel :- (s/maybe model/Produto) [db, produto-id :- java.util.UUID]
+  (let [query '[:find (pull ?produto [* {:produto/categoria [*]}]) .
+                :in $ % ?id
+                :where [?produto :produto/id ?id]
+                (pode-vender? ?produto)]
         resultado (d/q query db regras produto-id)
         produto (datomic-para-entidade resultado)]
     (if (:produto/id produto)
