@@ -16,4 +16,10 @@
 
 (pprint (db/todos-os-produtos-com-estoque (d/db conn)))
 
+(def produtos (db/todos-os-produtos (d/db conn)))
+(pprint (db/um-produto-com-estoque (d/db conn) (:produto/id (first produtos))))
+(pprint (db/um-produto-com-estoque (d/db conn) (:produto/id (second produtos))))
+
+
+
 

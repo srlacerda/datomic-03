@@ -202,4 +202,14 @@
                   [(> ?estoque 0)]]
          db)))
 
-
+(s/defn um-produto-com-estoque :- (s/maybe model/Produto) [db, produto-id :- java.util.UUID]
+  (let [query ' [:find  (pull ?produto [* {:produto/categoria [*]}]) .
+                 :in     $ ?id
+                 :where  [?produto :produto/id ?id]
+                 [?produto :produto/estoque ?estoque]
+                 [(> ?estoque 0)]]
+        resultado (d/q query db produto-id)
+        produto (datomic-para-entidade resultado)]
+    (if (:produto/id produto)
+      produto
+      nil)))
